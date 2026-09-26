@@ -45,7 +45,8 @@ If any part reads like the default you would produce for any page, change it and
 ### 4. Build
 
 - Write one self-contained `.html` file: inline CSS and JS, inline SVG diagrams, no build step.
-- Default location: `.artifacts/<short-name>.html` in the current workspace, unless the user names a location.
+- Default location: `~/agent-notes/<repo>/artifacts/<short-name>.html` inside a git repo (see "Agent notes" in `AGENTS.md`), or `~/agent-notes/artifacts/<short-name>.html` outside one, unless the user names a location.
+  Screenshots land next to the page, so they stay out of the repo too.
 - Follow `references/design.md` exactly: theme tokens, both color schemes, fallback fonts, responsive layout.
 
 ### 5. Look at it (required)
