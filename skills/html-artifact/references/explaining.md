@@ -21,6 +21,7 @@ Short sentences, but not a short page: use as many words as the reader needs.
 3. **Why, not only what.** For every part you describe, say why it exists: what would go wrong without it. A part described without its reason is a gap.
 4. **Concrete cases.** Walk through real scenarios step by step, including the failure cases: what triggers each one, what happens, and what the reader sees. When there are several scenarios, let the reader pick one and see its steps.
 5. **What it means for the reader.** End with what this changes in the reader's own code or work: mistakes to avoid, settings that matter, and how to spot problems.
+   After that, close the page with a short "Not covered here" list: the related topics the page left out, one line each, so the reader knows where to dig next.
 6. **Do not compress.** Never replace an explanation with a clever summary heading or a slogan. If a sentence only makes sense to someone who already understands the topic, rewrite it or add the missing step.
 
 ## How to write each sentence
@@ -64,5 +65,5 @@ Reread the finished page top to bottom as the newcomer, then answer each item in
 3. The "one idea to hold on to" comes right after the background.
 4. Every part says why it exists.
 5. The scenarios, including the failure cases, can be followed step by step, and the reader can pick one when there are several.
-6. The page ends with what it means for the reader's own work.
+6. The page ends with what it means for the reader's own work, followed by the "Not covered here" list.
 7. No sentence needs knowledge the page has not given yet. Rewrite only the sentences that fail. Do not shorten the page.
