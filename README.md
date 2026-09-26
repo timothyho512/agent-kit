@@ -7,6 +7,7 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 - `AGENTS.md` holds my global agent instructions.
   The installer copies it to `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`).
 - `skills/html-artifact` is my own skill for building HTML pages, reports, and visual explainers.
+- `skills/bro` restates the last answer in plain words. It is copied from the `bro` skill in pstack (MIT, https://github.com/michael-denyer/pstack-claude, a port of Lauren Tan's pstack), and it only runs when invoked as `$bro`.
 - `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository, unchanged.
 - `skills/local` holds my changed copies of vendored skills; `skills/local/README.md` says what changed and why.
 - `skills.txt` lists the skills to install.

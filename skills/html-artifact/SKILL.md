@@ -58,21 +58,26 @@ Run the screenshot checker:
 node <this-skill-dir>/scripts/shot.mjs <page.html>
 ```
 
-It renders the page in the locally installed Chrome or Edge at desktop (1280px) and phone (400px) width, in light and dark, and prints a JSON report with screenshot paths and detected problems.
+It renders the page in the locally installed Chrome or Edge at desktop (1280px) and phone (400px) width, in light and dark, and prints a JSON report with the screenshot paths and the detected problems.
+`screenshots` holds the whole page at desktop width in light, cut into slices, plus the top of the page in the other three views.
+`figures` holds each diagram on its own, in light and dark.
 
 If it fails because `playwright-core` is missing, run `npm install --prefix <this-skill-dir>/scripts` once and retry.
 If install is not possible, say so plainly, open the page for the user, and ask them to look instead of claiming it looks right.
 
 Then:
 
-1. Fix every item in `problems` (sideways scroll, clipped text, fallback fonts, diagram label collisions, ALL-CAPS labels, theme ignored, console errors, failed requests).
+1. Fix every item in `problems` (sideways scroll, clipped text, fallback fonts, diagram labels that collide, lines through labels or boxes, labels spilling out of boxes, ALL-CAPS labels, theme ignored, console errors, failed requests).
    The report is authoritative: an item stays until you fix it or state in your final reply why it is intentional.
-2. Open all four PNGs with your image viewing tool and review them like a picky designer:
-   overlaps, cramped or uneven spacing, misaligned edges, unreadable contrast in either theme, labels colliding in diagrams, orphan items alone in a grid row, a dark theme that is just an inversion.
+2. Open every file in `screenshots` and `figures` with your image viewing tool, not only the first, and review them like a picky designer:
+   overlaps, cramped or uneven spacing, misaligned edges, unreadable contrast in either theme, orphan items alone in a grid row, a dark theme that is just an inversion.
+   In each figure, follow every arrow from start to end: it must start and end at the right box, point the right way, and cross no label or box on the way.
 3. Fix what you see, rerun the checker, and look again.
 
 Stop after at most three rounds.
 Never report the page as done while the report still lists problems you did not explain.
+
+If the page explains something, finish with the content check at the end of `references/explaining.md`.
 
 ### 6. Deliver
 

@@ -3,6 +3,7 @@
 # Removing a name here removes that skill on the next install.
 
 html-artifact
+bro
 
 # Thinking and planning
 grill-me

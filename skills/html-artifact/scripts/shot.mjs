@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Render an HTML file in the locally installed Chrome or Edge and report what a reviewer would see.
 // Usage: node shot.mjs <page.html> [outDir]
-// Writes desktop/phone x light/dark PNGs plus report.json, and prints the report.
+// Writes the whole page at desktop width in light (in slices), the top of the page at desktop dark and
+// phone light/dark, each diagram at desktop width in light and dark, plus report.json, and prints the report.
 
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
@@ -38,11 +39,13 @@ const VIEWS = [
   { name: "phone", width: 400, height: 860 },
 ];
 const THEMES = ["light", "dark"];
-// Full-page shots of very long pages become unreadable thumbnails; cap the height.
-const MAX_SHOT_HEIGHT = 4000;
+// A full-page shot of a long page becomes an unreadable thumbnail, so long pages are cut into slices.
+const TILE_HEIGHT = 2000;
+const MAX_TILES = 12;
+const MAX_FIGURES = 12;
 
 const browser = await launch();
-const report = { page, outDir, screenshots: [], consoleErrors: [], failedRequests: [], checks: {} };
+const report = { page, outDir, screenshots: [], figures: [], consoleErrors: [], failedRequests: [], checks: {} };
 
 for (const view of VIEWS) {
   for (const theme of THEMES) {
@@ -132,6 +135,68 @@ for (const view of VIEWS) {
         }
       }
 
+      // Lines and arrows that run through a label or through a box they don't start or end in.
+      // Stroked shapes are sampled along their length in screen coordinates.
+      const svgCrossings = [];
+      const paints = (el, prop) => {
+        const v = getComputedStyle(el)[prop];
+        return v && v !== "none" && v !== "rgba(0, 0, 0, 0)" && v !== "transparent";
+      };
+      const shrink = (r, by) => ({ left: r.left + by, right: r.right - by, top: r.top + by, bottom: r.bottom - by });
+      const within = (p, r) => p.x > r.left && p.x < r.right && p.y > r.top && p.y < r.bottom;
+      for (const svg of document.querySelectorAll("svg")) {
+        const sb = svg.getBoundingClientRect();
+        if (sb.width < 100 || sb.height < 60) continue;
+        const texts = [...svg.querySelectorAll("text")].filter((t) => t.textContent.trim());
+        const labels = texts.map((t) => ({ name: t.textContent.trim(), box: t.getBoundingClientRect() }));
+        // Boxes: visible rects that are not the diagram's own background.
+        const boxes = [...svg.querySelectorAll("rect")]
+          .filter((r) => (paints(r, "fill") || paints(r, "stroke")) && getComputedStyle(r).visibility !== "hidden")
+          .map((r) => ({ el: r, box: r.getBoundingClientRect() }))
+          .filter(({ box }) => box.width > 20 && box.height > 14 && box.width * box.height < 0.4 * sb.width * sb.height);
+        const nameOf = (box) => {
+          const inside = labels.find((l) => l.box.left >= box.left - 2 && l.box.right <= box.right + 2 && l.box.top >= box.top - 2 && l.box.bottom <= box.bottom + 2);
+          return inside ? `the "${inside.name}" box` : "a box";
+        };
+        const backings = [...svg.querySelectorAll("rect, circle, ellipse")].filter((r) => paints(r, "fill"));
+        const strokes = [...svg.querySelectorAll("line, polyline, path")].filter((el) => paints(el, "stroke") && el.getTotalLength);
+        for (const el of strokes) {
+          const len = el.getTotalLength();
+          if (!len) continue;
+          const m = el.getScreenCTM();
+          const n = Math.min(400, Math.max(2, Math.ceil(len / 3)));
+          const pts = [];
+          for (let i = 0; i <= n; i++) {
+            const p = el.getPointAtLength((len * i) / n);
+            pts.push(new DOMPoint(p.x, p.y).matrixTransform(m));
+          }
+          const [start, end] = [pts[0], pts[pts.length - 1]];
+          for (const l of labels) {
+            // A label on a filled rect or circle painted above the line (a step number, a label chip) is intended.
+            const backed = backings.some(
+              (r) =>
+                el.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING &&
+                ((box) => box.left <= l.box.left + 1 && box.right >= l.box.right - 1 && box.top <= l.box.top + 1 && box.bottom >= l.box.bottom - 1)(r.getBoundingClientRect()),
+            );
+            if (!backed && pts.some((p) => within(p, shrink(l.box, 1)))) svgCrossings.push(`a line runs through the label "${l.name}"`);
+          }
+          for (const { box } of boxes) {
+            const pad = shrink(box, -4);
+            if (within(start, pad) || within(end, pad)) continue;
+            if (pts.some((p) => within(p, shrink(box, 3)))) svgCrossings.push(`a line runs through ${nameOf(box)}`);
+          }
+        }
+        // Labels that spill over the edge of a box.
+        for (const l of labels) {
+          for (const { box } of boxes) {
+            const touches = overlap(l.box, box, 2);
+            const inside = l.box.left >= box.left - 1 && l.box.right <= box.right + 1 && l.box.top >= box.top - 1 && l.box.bottom <= box.bottom + 1;
+            const covers = box.left >= l.box.left && box.right <= l.box.right && box.top >= l.box.top && box.bottom <= l.box.bottom;
+            if (touches && !inside && !covers) svgCrossings.push(`the label "${l.name}" spills over the edge of ${nameOf(box)}`);
+          }
+        }
+      }
+
       // Tracked-out ALL-CAPS labels are the commonest generated-page tell.
       const capsLabels = [...document.body.querySelectorAll("*")].filter((el) => {
         if (!el.childNodes.length || ![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) return false;
@@ -154,6 +219,7 @@ for (const view of VIEWS) {
       return {
         scrollersHiding,
         svgCollisions: svgCollisions.slice(0, 10),
+        svgCrossings: [...new Set(svgCrossings)].slice(0, 10),
         uppercaseTrackedLabels: capsLabels,
         horizontalOverflowPx: Math.max(0, overflowPx),
         overflowingElements: offenders,
@@ -168,11 +234,34 @@ for (const view of VIEWS) {
     }, view.width);
     report.checks[`${view.name}-${theme}`] = checks;
 
-    const file = join(outDir, `${view.name}-${theme}.png`);
-    const fullHeight = Math.min(checks.pageHeightPx, MAX_SHOT_HEIGHT);
-    await tab.setViewportSize({ width: view.width, height: fullHeight });
-    await tab.screenshot({ path: file, clip: { x: 0, y: 0, width: view.width, height: fullHeight } });
-    report.screenshots.push(file);
+    const key = `${view.name}-${theme}`;
+    if (key === "desktop-light") {
+      // The whole page in readable slices, so nothing below the fold goes unseen.
+      for (let y = 0, i = 1; y < checks.pageHeightPx && i <= MAX_TILES; y += TILE_HEIGHT, i++) {
+        const file = join(outDir, `${key}-${i}.png`);
+        const h = Math.min(TILE_HEIGHT, checks.pageHeightPx - y);
+        await tab.screenshot({ path: file, fullPage: true, clip: { x: 0, y, width: view.width, height: h } });
+        report.screenshots.push(file);
+      }
+    } else {
+      const file = join(outDir, `${key}.png`);
+      const h = Math.min(checks.pageHeightPx, TILE_HEIGHT);
+      await tab.screenshot({ path: file, fullPage: true, clip: { x: 0, y: 0, width: view.width, height: h } });
+      report.screenshots.push(file);
+    }
+    if (view.name === "desktop") {
+      // Each diagram on its own, so its labels and arrows can be inspected up close.
+      const svgs = tab.locator("svg");
+      let fig = 0;
+      for (let i = 0; i < (await svgs.count()) && fig < MAX_FIGURES; i++) {
+        const box = await svgs.nth(i).boundingBox();
+        if (!box || box.width < 100 || box.height < 60) continue;
+        fig++;
+        const file = join(outDir, `figure-${fig}-${theme}.png`);
+        await svgs.nth(i).screenshot({ path: file });
+        report.figures.push(file);
+      }
+    }
     await ctx.close();
   }
 }
@@ -186,6 +275,7 @@ for (const [k, c] of Object.entries(report.checks)) {
   if (k.startsWith("desktop") && c.scrollersHiding.length)
     problems.push(`${k}: content cut off inside a sideways scroller at desktop width: ${c.scrollersHiding.join(", ")}`);
   if (c.svgCollisions.length) problems.push(`${k}: diagram labels collide: ${c.svgCollisions.join("; ")}`);
+  if (k === "desktop-light" && c.svgCrossings.length) problems.push(`diagram lines cross labels or boxes: ${c.svgCrossings.join("; ")}`);
 }
 const d = report.checks;
 if (d["desktop-light"].uppercaseTrackedLabels >= 3)
@@ -197,8 +287,9 @@ if (fonts.size) problems.push(`fonts not loaded, browser fell back: ${[...fonts]
 if (!report.checks["desktop-light"].title) problems.push("page has no <title>");
 if (report.consoleErrors.length) problems.push(`console errors: ${report.consoleErrors.length}`);
 if (report.failedRequests.length) problems.push(`failed requests: ${report.failedRequests.length} (blocked network or bad URL)`);
-if (Object.values(report.checks).some((c) => c.pageHeightPx > MAX_SHOT_HEIGHT)) problems.push(`page is taller than ${MAX_SHOT_HEIGHT}px; screenshots show only the top`);
+if (report.checks["desktop-light"].pageHeightPx > TILE_HEIGHT * MAX_TILES)
+  problems.push(`page is taller than ${TILE_HEIGHT * MAX_TILES}px; the desktop-light slices stop there`);
 report.problems = problems;
 
 writeFileSync(join(outDir, "report.json"), JSON.stringify(report, null, 2));
-console.log(JSON.stringify({ screenshots: report.screenshots, problems, consoleErrors: report.consoleErrors, failedRequests: report.failedRequests }, null, 2));
+console.log(JSON.stringify({ screenshots: report.screenshots, figures: report.figures, problems, consoleErrors: report.consoleErrors, failedRequests: report.failedRequests }, null, 2));

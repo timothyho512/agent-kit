@@ -10,8 +10,6 @@ Expect 15 to 30 questions for a topic of any real size.
 Show the list in your reply.
 
 Plan the page so that every question is answered on it, in that order.
-After building the page, go through the list again and check each question against the page.
-Add whatever is missing before you finish, and say in your reply which questions the page answers where.
 
 ## What to cover
 
@@ -23,130 +21,48 @@ Short sentences, but not a short page: use as many words as the reader needs.
 3. **Why, not only what.** For every part you describe, say why it exists: what would go wrong without it. A part described without its reason is a gap.
 4. **Concrete cases.** Walk through real scenarios step by step, including the failure cases: what triggers each one, what happens, and what the reader sees. When there are several scenarios, let the reader pick one and see its steps.
 5. **What it means for the reader.** End with what this changes in the reader's own code or work: mistakes to avoid, settings that matter, and how to spot problems.
-6. **Do not compress.** Never replace an explanation with a clever summary heading or a slogan. A heading says what the section shows in plain words. If a sentence only makes sense to someone who already understands the topic, rewrite it or add the missing step.
+6. **Do not compress.** Never replace an explanation with a clever summary heading or a slogan. If a sentence only makes sense to someone who already understands the topic, rewrite it or add the missing step.
 
-## Wording
+## How to write each sentence
 
-The rules below are about how each sentence is written. They never justify cutting content that the reader needs.
+These rules are about wording. They never justify cutting content the reader needs.
 
-## Writing the copy (Claude's artifact guidance)
-
-Treat words as design material and never as decoration. Write from the user's side of the screen: name things by what people recognize instead of how the system is built (a person manages *notifications*; they don't manage *webhook config*). Use active voice; a control states exactly what happens ("Publish", then a toast that says "Published"). Errors explain what went wrong and how to fix it, without apologies or vagueness. Prefer specific to clever. Write plainly, the way a knowledgeable person would talk. Avoid mannered devices: asides set off by em-dashes, "not X, but Y" framing, colon-then-reveal sentences, scare quotes around invented labels, and stock phrases such as "worth noting" or "honest caveat". Prefer short, direct sentences over compressed or clever phrasing.
+**Writing the copy.** Treat words as design material and never as decoration. Write from the user's side of the screen: name things by what people recognize instead of how the system is built (a person manages *notifications*; they don't manage *webhook config*). Use active voice. Prefer specific to clever. Write plainly, the way a knowledgeable person would talk. Avoid mannered devices: asides set off by dashes, "not X, but Y" framing, colon-then-reveal sentences, scare quotes around invented labels, and stock phrases such as "worth noting" or "honest caveat". Prefer short, direct sentences over compressed or clever phrasing.
 
 **Structure is information.** Structural devices (numbering, eyebrows, dividers, labels) should encode something true about the content instead of decorating it. Numbered markers fit only if the content actually is a sequence.
 
-## Say it simply (pstack bro)
+**Talk like one person to another.** No jargon the page has not explained. Say things coherently and simply.
 
-Stop using jargon and speak coherently. State it more simply and concisely, like one human talking to another.
+**Be concrete.**
 
-## Communication style (pstack how)
+- Use the real name from the code: say "`UserService` calls `AuthClient.refresh()`", not "the service delegates to the client".
+- When something is complex, explain why it is complex. Don't just describe the complexity.
+- When something is simple, don't pad it out.
+- Use an analogy only when a helpful one exists. Don't force one.
+- Be specific: not "this can cause issues" but "the request waits 30 seconds, then fails with `TimeoutError`".
+- If you could not confirm something, say so on the page rather than hiding it.
 
-- Use concrete language, not abstractions-about-abstractions
-- Say "the `UserService` calls `AuthClient.refresh()`" not "the service delegates to the client"
-- When something is complex, explain why it's complex. Don't just describe the complexity
-- When something is simple, don't pad it out
-- If there's a helpful analogy, use it; if there isn't, don't force one
-- If you could not confirm something, say so on the page rather than hiding it
+**Make each sentence read one way.**
 
-## Technical writing (pstack technical-writing)
-
-
-The goal is writing a tired engineer understands on the first read. Four layers get you there, one question each: what kind of document is this, how do sentences address the reader, how much does each sentence carry, and can any sentence be read two ways. Apply all four.
-
-Three rules sit above the layers:
-
-- **Cut every word that does no work.** If the sentence survives without a word, the word goes. "In order to" is "to". "It is important to note that" is nothing.
-- **Use the short, everyday word.** "Use", not "utilize". "Help", not "facilitate". "Do", not "perform". A long word has to buy its length with precision.
-- **When a rule makes a sentence worse, fix the sentence another way or leave it alone.** The rules serve the reader. A sentence that follows every rule and sounds like a machine wrote it has failed.
-
-The codebase is the word list. Write the real symbol, file, flag, or command name, not a synonym or a description of it.
-
-
-### Vary the rhythm
-
-The layers decide what a document says and how much each sentence carries. A doc can obey all of them and still read machine-written: every sentence clipped short, no view anywhere, nothing specific.
-
-- Mix sentence lengths on purpose. Short sentences land a point. Longer ones that take their time carry a fact with its condition or consequence.
-- One thought per sentence does not mean one length per sentence. Split the sentence that carries two thoughts. Keep the long sentence that carries one.
-- Have a view where the mode allows it. Explanation weighs trade-offs, so say what you make of them instead of listing pros and cons. Reference stays dry.
-- Be specific over sterile. Not "schema changes can cause issues" but "a column rename fails the build".
-
-### Pick the mode first (Diátaxis)
-
-One document, one mode. Two questions pick it: does the content inform action (doing) or understanding (thinking), and does it serve learning or work?
-
-- Action + learning: **tutorial**.
-- Action + work: **how-to**.
-- Understanding + work: **reference**.
-- Understanding + learning: **explanation**.
-
-Use the compass on a whole document or on one sentence.
-
-**Tutorial: learning by doing.** You are the teacher. The learner's success is your job, not theirs. Open by saying what the learner will build, not what they will "learn". Every step produces a visible result, early and often. Tell them what they should see: the expected output, the prompt change, the log line. Cut explanation to one clause and a link. Teaching pauses break the lesson. Stay concrete. Write as "we", in commands: "First, do x. Now, do y."
-
-**How-to: steps to a goal.** Solve a problem a person has, not an operation the machine can perform. Assume competence. Skip teaching. Action only: no digressions, no background, no completeness for its own sake. Link those instead. Allow forks and judgment: "If you want x, do y." Name the guide by the task: "How to calibrate the radar array", not "Radar array calibration".
-
-**Reference: facts for lookup.** Describe. Only describe. No instruction, no persuasion, no opinion. Be dry, complete, and sure: state facts, options, limits, and errors with no hedging. Mirror the structure of the thing described, so code and docs can be navigated together. Put material where readers expect it. Generate from code where possible, so it stays true.
-
-**Explanation: understanding and why.** One bounded topic, readable away from the product. Each title should tolerate an implicit "About..." in front. Anchor on a real why question. Give context: design decisions, history, constraints, alternatives. Opinion is allowed here and nowhere else.
-
-Don't mix modes: no reference tables inside a tutorial, no tutorial hand-holding inside reference, no arguing inside a how-to. Split and link instead.
-
-Source: diataxis.fr, fetched 2026-07-18.
-
-### Write sentences to the reader (Google developer style)
-
-- Talk to the reader as "you", in the present tense. "Will" only for things that genuinely happen later.
-- Say who does what: "the compiler checks", not "is checked". Passive is fine only when the actor is unknown or beside the point.
-- Write instructions as commands: "Click Submit." State facts plainly. Never "should be done".
-- Put the condition before the instruction: "To delete the document, click Delete." The reader skips what does not apply.
-- Put the common case first. Exceptions after.
-- Sound like a knowledgeable friend. No buzzwords, no figurative language, no "please" in instructions, and never "simply", "easy", or "quickly" in a procedure. If it were simple, the reader would not be here.
-- Don't pre-announce ("we will soon support...") and don't start consecutive sentences with the same phrase.
-- Link with words that say where the link goes: the page title or a short description. Never "click here". Prefer a sentence of context on the page over a link off it.
-- Headings carry the point, not just the topic ("Pick the mode first", not "Modes"). Sentence case. A task heading is a bare verb phrase ("Create an instance"). A concept heading is a noun phrase. One h1 per page, no skipped levels.
-- Numbered lists for sequences, bullets for everything else. Introduce a list with a complete sentence. Keep items parallel.
-- Code goes in code font. UI elements go in bold. Use serial commas. Drop "etc." and say up front that a list is partial.
-
-Source: developers.google.com/style, fetched 2026-07-18.
-
-### Make statements load one at a time (STE rules)
-
-- One instruction per sentence. One thought per sentence everywhere else.
-- Split instructions longer than about 20 words and other sentences longer than about 25.
-- Put the warning or condition before the step it guards: "If hot oil touches your skin, injuries can occur."
-- Keep "the" and "a": "Remove backup file" reads two ways. "Remove the backup file" reads one.
-- Give each word one meaning and one job, then keep it. If "check" means inspect, don't also use it for restrain.
-- Pick one word per action and stick to it: "start", not "start" here and "initiate" there.
-- Write procedures as direct commands, never as narration and never in the passive: "Install the component", not "the component must be installed".
-- Avoid "-ing" words where you can. They take too many grammatical jobs and breed misreadings.
-
-Source: asd-ste100.org (Issue 9, 2025), fetched 2026-07-18. The numbered rules and dictionary live in the spec PDF. The principles above are the transferable core.
-
-### Leave no sentence open to two readings (Global English)
-
-- Keep words like "only" and "not" next to the word they change: "only fails on growth" and "fails only on growth" say different things.
+- One thought per sentence. Split a sentence that carries two. Keep a long sentence that carries one.
+- Say who does what: "the server closes the socket", not "the socket is closed".
+- Make every "it", "they", and "this" point at one obvious thing. Repeat the noun when in doubt.
+- Call each thing by one name everywhere on the page.
 - Break up long noun strings: "the proto import budget check script" becomes "the script that checks the proto-import budget".
-- Make every "it", "they", and "this" point at one obvious thing. Repeat the noun when in doubt. Never use "this" or "which" to point at a whole clause.
-- Don't drop verbs: "Phase 1 moves the converters and Phase 2 the runtime" leaves Phase 2 without one. Give it one.
-- Keep the small words that show structure. "Ensure that the switch is off" keeps "that" because it makes the sentence parse one way. Never trade clarity for word count.
-- Repeat the article in a series when it prevents a misread: "the client and the host", not "the client and host", when they are two things.
-- Say which parts "and" or "or" joins when a sentence can group two ways. "Both...and", "either...or", and "if...then" are free disambiguators.
-- Use periods, not semicolons. Replace an em dash with a new sentence.
-- Make text in parentheses a full grammatical unit or its own sentence. Never form plurals with "(s)".
-- No slashes: write "a, b, or both" instead of "a/b" or "and/or".
-- Call each thing by one name, everywhere. A doc that says "the gate", "the ratchet", and "the budget check" for one thing teaches three things. Rewording an unchanged sentence between edits costs the same way: don't churn what didn't change.
-- Skip idioms, colloquialisms, Latin abbreviations, and metaphors. A non-native reader, a translator, and an agent all parse plain constructions best.
+- Cut words that do no work, and use the everyday word: "use", not "utilize".
+- Headings say the point in plain words, in sentence case.
+- Numbered lists for sequences, bullets for everything else.
+- Mix sentence lengths. Short sentences land a point. Longer ones carry a fact with its condition or consequence.
+- A sentence that follows every rule but sounds like a machine wrote it has failed. Fix it another way.
 
-Source: Kohl, The Global English Style Guide (SAS Press). Guideline text fetched from the Internet Archive and the SAS sample chapter, 2026-07-18.
+## Content check (after the screenshot check)
 
-### Worked example
+Reread the finished page top to bottom as the newcomer, then answer each item in your final reply with where on the page it is, or fix the page first:
 
-Before:
-
-> Configuration of the proto import ratchet budget script parameters is performed via budget.json. Note that it's important to remember that running with --write, which updates the committed budget to reflect the current count, should only be done when lowering it. If exceeded, CI fails.
-
-After:
-
-> `budget.mjs` reads the committed budget from `budget.json` and counts the files that import protos. If the count exceeds the budget, CI fails. Run `budget.mjs --write` only to lower the budget.
-
+1. Every question from Step 0 is answered. List any that are not, and add them.
+2. The page opens with a background section, and every technical term is defined the first time it appears.
+3. The "one idea to hold on to" comes right after the background.
+4. Every part says why it exists.
+5. The scenarios, including the failure cases, can be followed step by step, and the reader can pick one when there are several.
+6. The page ends with what it means for the reader's own work.
+7. No sentence needs knowledge the page has not given yet. Rewrite only the sentences that fail. Do not shorten the page.
