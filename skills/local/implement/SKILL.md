@@ -12,4 +12,4 @@ Run typechecking regularly, single test files regularly, and the full test suite
 
 Once done, use /code-review to review the work.
 
-Do not commit. Stop and give Timothy a short summary of what changed (files, behaviour, and which checks ran with their results) so he can review and commit it himself.
+Give Timothy a short summary of what changed (files, behaviour, and which checks ran with their results). Then commit following the local commit rule in `AGENTS.md`: show the files and message, feature branch only, and Timothy approves the commit.

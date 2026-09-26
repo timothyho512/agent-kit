@@ -2,16 +2,16 @@
 
 Skills here replace the vendored skill of the same name at install time.
 Each one is a copy of the upstream skill with the smallest change that fits Timothy's work setup:
-he is new to the team, commits himself, receives Jira tickets rather than creating issues, and works on a network that may block CDNs.
+he is new to the team, approves every commit, receives Jira tickets rather than creating issues, and works on a network that may block CDNs.
 The originals in `skills/vendor/` stay byte-identical to upstream, so updates stay a clean diff.
 To see a change exactly, diff the two folders, for example `git diff --no-index skills/vendor/mattpocock/implement skills/local/implement`.
 
-Rules that apply to every skill (no commits, where notes go, how "call the Skill tool" works in Codex) live in `AGENTS.md`, not here.
+Rules that apply to every skill (commits only with Timothy's approval, where notes go, how "call the Skill tool" works in Codex) live in `AGENTS.md`, not here.
 
 ## implement
 
 The last step said "Commit your work to the current branch".
-Now it stops and summarises the changes and check results so Timothy can review and commit.
+Now it summarises the changes and check results, then proposes a commit that Timothy approves, only on a feature branch.
 
 ## code-review
 
