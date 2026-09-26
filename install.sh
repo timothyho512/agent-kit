@@ -96,9 +96,18 @@ else
   echo "  AGENTS.md: installed $agents_dest"
 fi
 
+notes="$HOME/agent-notes"
+if [ ! -d "$notes" ]; then
+  mkdir -p "$notes"
+  echo "Created the agent notes folder $notes"
+fi
+
 html_scripts="$skills_dest/html-artifact/scripts"
 echo
 echo "Done."
+echo "To let Codex write to the notes folder without asking each time, add this to $codex_home/config.toml once:"
+echo "  [sandbox_workspace_write]"
+echo "  writable_roots = [\"$notes\"]"
 echo "Note: the html-artifact screenshot checker needs its dependency installed once (kept across updates):"
 echo "  npm install --prefix \"$html_scripts\""
 echo "It uses the playwright-core npm package, which may need approval."

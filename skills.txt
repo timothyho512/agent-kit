@@ -16,13 +16,18 @@ teach
 research
 wait-what
 
-# Building and debugging
+# Building, reviewing, and debugging (implement, code-review, and
+# resolving-merge-conflicts come from skills/local: they never commit)
 diagnosing-bugs
 tdd
+implement
+code-review
+resolving-merge-conflicts
+
+# Architecture and prototypes (also from skills/local)
+improve-codebase-architecture
+prototype
 
 # Sessions and agent docs
 handoff
 writing-for-agents
-
-# Not installed yet; each needs review and changes first:
-# implement, code-review, improve-codebase-architecture, prototype, resolving-merge-conflicts

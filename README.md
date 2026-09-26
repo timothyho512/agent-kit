@@ -47,6 +47,17 @@ npm install --prefix "$HOME\.agents\skills\html-artifact\scripts"
 The package may need approval before you can install it.
 Without it the skill still works, but it cannot see the pages it builds.
 
+## Agent notes folder
+
+Skills that write notes (`CONTEXT.md`, ADRs, research, prototypes, teach lessons) write them to `~/agent-notes/<repo>/`, never inside a repo, so they cannot be committed by accident.
+`AGENTS.md` tells Codex this, and the installer creates the folder.
+Codex's sandbox only lets it write inside the current project, so allow the notes folder once in `~\.codex\config.toml` (the installer prints the exact line for your machine):
+
+```toml
+[sandbox_workspace_write]
+writable_roots = ["C:\\Users\\<you>\\agent-notes"]
+```
+
 ## Using it in Codex
 
 - Run `/skills` to list the installed skills.

@@ -8,8 +8,6 @@ These are common instructions for Timothy's agents across all scenarios.
 - When writing commit messages, NEVER auto-add your agent name as co-author
 - Never commit, push, create branches, or open merge requests or issues unless Timothy explicitly asks for it in this conversation.
   If a skill tells you to do one of these, stop and ask Timothy instead.
-- Before creating files in a repo that the task did not ask for (notes, research write-ups, `CONTEXT.md`, ADRs), ask Timothy where to save them.
-  Suggest a location outside the repo by default, so nothing ends up committed by accident.
 - Never manually modify CHANGELOG.md files or any files that are marked as auto-generated
 - When writing or substantially editing long Markdown files, put each full sentence on its own line.
   Preserve normal Markdown structure, but avoid wrapping multiple sentences onto one physical line.
@@ -26,3 +24,23 @@ These are common instructions for Timothy's agents across all scenarios.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
   If you see one, even if it is not caused by what you are working on right now, still get it fixed.
 - For any HTML page, report, or visual explainer, use the html-artifact skill.
+- In a large repo, ask Timothy which folder or module to focus on before exploring widely, and hand wide searches to subagents so their file reads stay out of the main conversation.
+
+## Agent notes
+
+Notes that agents write for Timothy never go inside a repo, so they cannot be committed by accident.
+They live in `~/agent-notes/<repo>/`, where `~` is Timothy's home folder and `<repo>` is the name of the repo's top-level folder (`git rev-parse --show-toplevel`).
+Create folders there as needed.
+
+- Where a skill says `CONTEXT.md` or `CONTEXT-MAP.md`, use `~/agent-notes/<repo>/CONTEXT.md` or `CONTEXT-MAP.md`.
+- Where a skill says `docs/adr/`, use `~/agent-notes/<repo>/adr/`.
+- Research write-ups go in `~/agent-notes/<repo>/research/`, and saved tickets in `~/agent-notes/<repo>/tickets/`.
+- The teach skill's workspace is `~/agent-notes/teach/<topic>/`, not the current folder.
+- If the repo itself already has a `CONTEXT.md`, ADRs, or similar docs, read them as the team's source of truth, but never edit them unless Timothy asks.
+- Any other file the task did not ask for goes in the notes folder too; ask Timothy before creating it inside the repo.
+
+## Skills
+
+The skills were written for Claude Code.
+When a skill says "call the Skill tool" for another skill, or names one as `/name`, read that skill's `SKILL.md` (in a sibling folder of the current skill) and follow it.
+When Timothy names a skill as `$name` and it is not in your skills list, it is a skill that only runs when asked: read `~/.agents/skills/<name>/SKILL.md` and follow it.

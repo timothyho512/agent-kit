@@ -122,9 +122,18 @@ if ($identical) {
     Write-Host "  AGENTS.md: installed $agentsDest"
 }
 
+$notes = Join-Path $HOME 'agent-notes'
+if (-not (Test-Path -LiteralPath $notes)) {
+    New-Item -ItemType Directory -Path $notes | Out-Null
+    Write-Host "Created the agent notes folder $notes"
+}
+
 $htmlScripts = Join-Path (Join-Path $skillsDest 'html-artifact') 'scripts'
 Write-Host ""
 Write-Host "Done."
+Write-Host "To let Codex write to the notes folder without asking each time, add this to $codexHome\config.toml once:"
+Write-Host "  [sandbox_workspace_write]"
+Write-Host "  writable_roots = [`"$($notes -replace '\\', '\\')`"]"
 Write-Host "Note: the html-artifact screenshot checker needs its dependency installed once (kept across updates):"
 Write-Host "  npm install --prefix `"$htmlScripts`""
 Write-Host "It uses the playwright-core npm package, which may need approval."
