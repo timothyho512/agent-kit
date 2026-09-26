@@ -3,7 +3,6 @@
 # Removing a name here removes that skill on the next install.
 
 html-artifact
-bro
 
 # Thinking and planning
 grill-me
@@ -38,6 +37,7 @@ writing-for-agents
 pstack-architect
 pstack-arena
 pstack-automate-me
+pstack-bro
 pstack-blast-radius
 pstack-create-verification-skill
 pstack-deslop

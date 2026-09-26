@@ -7,9 +7,8 @@ These skills are vendored from Michael Denyer's pstack port, which adapts Lauren
 - Included: the folders under `plugins/pstack/skills/`, except the ones this kit does not use:
   `babysit`, `fix-ci`, `get-pr-comments`, and `make-pr-easy-to-review` (they need the GitHub CLI),
   `fix-merge-conflicts` (it finishes the merge itself; this kit uses `resolving-merge-conflicts`),
-  `bro` (this kit has its own copy in `skills/bro`),
   and `setup-pstack` (the model rows live in this kit's `AGENTS.md` instead).
-- Not included: the plugin's SessionStart hook. It is a `/bin/sh` script that does not run on Windows; the routing rule is in `AGENTS.md` instead.
+- Not included: the plugin's SessionStart hook. It is a `/bin/sh` script that does not run on Windows, and poteto-mode is started by hand instead.
 - License: MIT, see `LICENSE`, `LICENSE-cursor-team-kit`, `NOTICE.md`, and `NOTICE-skills.md` in this directory.
 
 Files are byte-identical to upstream at the pinned commit.

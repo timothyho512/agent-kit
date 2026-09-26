@@ -7,7 +7,6 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 - `AGENTS.md` holds my global agent instructions.
   The installer copies it to `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`).
 - `skills/html-artifact` is my own skill for building HTML pages, reports, and visual explainers.
-- `skills/bro` restates the last answer in plain words. It is copied from the `bro` skill in pstack (MIT, https://github.com/michael-denyer/pstack-claude, a port of Lauren Tan's pstack), and it only runs when invoked as `$bro`.
 - `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository, unchanged.
 - `skills/vendor/pstack` holds pstack's skills, vendored unchanged from the Claude Code and Codex port. They install as `pstack-<name>`.
 - `skills/local` holds my changed copies of vendored skills; `skills/local/README.md` says what changed and why.
@@ -64,8 +63,11 @@ writable_roots = ["C:\\Users\\<you>\\agent-notes"]
 ## pstack
 
 pstack is a set of engineering workflows: go deep before writing code, write less of it, and verify it.
-`AGENTS.md` sends any task that touches more than one file, needs a design choice, or is a bug with an unknown cause through `$pstack-poteto-mode`, which picks the right pstack skill.
-You can also call one directly, for example `$pstack-how`, `$pstack-why`, `$pstack-architect`, or `$pstack-interrogate`.
+Start it with `$pstack-poteto-mode`, or say "poteto mode" in plain words.
+poteto-mode picks the right playbook, principles, and pstack skills for the task.
+You can also call one skill directly, for example `$pstack-how`, `$pstack-why`, `$pstack-architect`, or `$pstack-interrogate`.
+Unlike the Claude Code plugin, this kit has no startup hook that sends every task to poteto-mode.
+Codex can still pick a single pstack skill on its own when its description matches the task, as it does with any installed skill.
 
 Skills such as `pstack-how`, `pstack-architect`, and `pstack-interrogate` run several subagents at once.
 If Codex says subagents are off, add this to `~\.codex\config.toml`:
