@@ -6,8 +6,10 @@ These are common instructions for Timothy's agents across all scenarios.
 
 - Never use the em dash (U+2014). Use plain dash "-" instead
 - When writing commit messages, NEVER auto-add your agent name as co-author
-- Never commit, push, create branches, or open merge requests or issues unless Timothy explicitly asks for it in this conversation.
-  If a skill tells you to do one of these, stop and ask Timothy instead.
+- Only change files in the local working copy unless Timothy explicitly asks for more in this conversation.
+  Without that, never commit, push, create or delete branches, open or merge merge requests, create issues, update or comment on tickets, send chat messages or emails, or start remote jobs.
+  If a skill says to do one of these, skip that step, carry on with the rest, and list what you skipped at the end.
+- Ask before anything destructive: force-pushing, deleting worktrees, or deleting files and folders you did not create in this task.
 - Never manually modify CHANGELOG.md files or any files that are marked as auto-generated
 - When writing or substantially editing long Markdown files, put each full sentence on its own line.
   Preserve normal Markdown structure, but avoid wrapping multiple sentences onto one physical line.
@@ -48,8 +50,11 @@ When Timothy names a skill as `$name` and it is not in your skills list, it is a
 ## pstack
 
 pstack's skills are installed as `pstack-<name>` in `~/.agents/skills`, so `pstack:how`, `/pstack:how`, "the `how` skill", and a link such as `../how/SKILL.md` all mean `~/.agents/skills/pstack-how/`.
-Before following a pstack skill, read `~/.agents/skills/pstack-poteto-mode/references/codex-tools.md`: it maps the Claude tool and model names in pstack to Codex ones.
-The rules in this file win over pstack: when a pstack playbook says to commit, push, branch, or open a pull request, stop and ask Timothy instead.
+The rules in this file win over pstack. In particular:
+
+- poteto-mode's "Just do it" line says external actions (team chat, ticket updates, kicking off evals) proceed without asking. Ignore that part: the rule on external actions at the top of this file applies.
+- When a playbook says to commit, stage commits, rebase, push, or open or merge a pull request, skip that step and leave the changes uncommitted.
+- Timothy's work repos are on GitLab, not GitHub. Skip pstack steps that need `gh`, `bun`, or `jq` (PR watching, shipping, autopilot, orchestrate, worktree audit), and do not install those tools or run `bun install`.
 
 pstack model roles (these override each pstack skill's Models section; roles not listed run on the session's model and effort):
 
