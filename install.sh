@@ -61,11 +61,9 @@ for name in "${wanted[@]}"; do
   sources+=("$src")
 done
 
+previous=""
 if [ -f "$manifest" ]; then
   previous="$(cat "$manifest")"
-else
-  # Before the manifest existed, the installer copied every bundled skill.
-  previous="$(ls "$repo/skills/vendor/mattpocock"; echo html-artifact)"
 fi
 
 echo "Installing skills into $skills_dest"

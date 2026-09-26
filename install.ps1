@@ -72,11 +72,9 @@ foreach ($name in $wanted) {
     $sources += $src
 }
 
+$previous = @()
 if (Test-Path -LiteralPath $manifest) {
     $previous = @(Get-Content -LiteralPath $manifest)
-} else {
-    # Before the manifest existed, the installer copied every bundled skill.
-    $previous = @(Get-ChildItem -LiteralPath $vendorDir | Where-Object { $_.PSIsContainer } | ForEach-Object { $_.Name }) + 'html-artifact'
 }
 
 Write-Host "Installing skills into $skillsDest"

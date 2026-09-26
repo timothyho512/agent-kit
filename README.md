@@ -65,7 +65,7 @@ writable_roots = ["C:\\Users\\<you>\\agent-notes"]
 
 ## Vendored skills
 
-Every skill under `skills/engineering/` and `skills/productivity/` in https://github.com/mattpocock/skills, pinned at commit `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`.
+The skills I use from https://github.com/mattpocock/skills, pinned at commit `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`.
 They are MIT licensed and kept byte-identical to upstream.
-Only the ones named in `skills.txt` are installed.
+The five I changed are also kept here unchanged, so `skills/local` can be diffed against them.
 See `skills/vendor/mattpocock/SOURCE.md` and `skills/vendor/mattpocock/LICENSE`.
