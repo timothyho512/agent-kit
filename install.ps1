@@ -142,6 +142,12 @@ if ($identical) {
     Write-Host "  AGENTS.md: installed $agentsDest"
 }
 
+# Command rules: Codex asks before git writes and never runs gh, whatever a skill says.
+$rulesDir = Join-Path $codexHome 'rules'
+New-Item -ItemType Directory -Path $rulesDir -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'rules\agent-kit.rules') -Destination (Join-Path $rulesDir 'agent-kit.rules') -Force
+Write-Host "  rules: installed $(Join-Path $rulesDir 'agent-kit.rules')"
+
 $notes = Join-Path $HOME 'agent-notes'
 if (-not (Test-Path -LiteralPath $notes)) {
     New-Item -ItemType Directory -Path $notes | Out-Null

@@ -1,0 +1,30 @@
+# Codex command rules from agent-kit, installed to ~/.codex/rules/agent-kit.rules.
+# Codex checks every shell command against these before running it, whatever a skill or prompt says.
+# "prompt" means Codex must ask Timothy first; "forbidden" means it can never run.
+# Rules match how a command starts, so `git -C <dir> commit` is not caught.
+
+# Git commands that record, publish, rewrite, or throw away work.
+prefix_rule(
+    pattern = ["git", ["commit", "push", "pull", "merge", "rebase", "reset", "revert", "cherry-pick", "am", "tag", "clean", "restore", "rm", "worktree"]],
+    decision = "prompt",
+    justification = "Timothy approves every git command that changes history, the remote, or discards work",
+    match = [["git", "commit", "-m", "x"], ["git", "push"], ["git", "reset", "--hard"], ["git", "worktree", "remove", "--force", "x"]],
+    not_match = [["git", "status"], ["git", "diff"], ["git", "log", "--oneline"]],
+)
+
+# Creating, deleting, or renaming branches.
+prefix_rule(
+    pattern = ["git", "branch", ["-d", "-D", "-m", "-M", "-c", "-C", "-f", "--delete", "--move", "--copy", "--force"]],
+    decision = "prompt",
+    justification = "Timothy approves every branch change",
+    match = [["git", "branch", "-D", "x"]],
+    not_match = [["git", "branch", "--show-current"]],
+)
+prefix_rule(pattern = ["git", "checkout", ["-b", "-B"]], decision = "prompt", justification = "Timothy approves every branch change")
+prefix_rule(pattern = ["git", "switch", ["-c", "-C"]], decision = "prompt", justification = "Timothy approves every branch change")
+
+# GitLab CLI: merge requests, issues, pipelines.
+prefix_rule(pattern = ["glab"], decision = "prompt", justification = "Timothy approves every GitLab action")
+
+# Work repos are on GitLab; pstack's GitHub steps must never run.
+prefix_rule(pattern = ["gh"], decision = "forbidden", justification = "Work repos are on GitLab, not GitHub")

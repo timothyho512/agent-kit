@@ -110,6 +110,11 @@ else
   echo "  AGENTS.md: installed $agents_dest"
 fi
 
+# Command rules: Codex asks before git writes and never runs gh, whatever a skill says.
+mkdir -p "$codex_home/rules"
+cp "$repo/rules/agent-kit.rules" "$codex_home/rules/agent-kit.rules"
+echo "  rules: installed $codex_home/rules/agent-kit.rules"
+
 notes="$HOME/agent-notes"
 if [ ! -d "$notes" ]; then
   mkdir -p "$notes"

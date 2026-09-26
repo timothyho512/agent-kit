@@ -10,6 +10,11 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 - `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository, unchanged.
 - `skills/vendor/pstack` holds pstack's skills, vendored unchanged from the Claude Code and Codex port. They install as `pstack-<name>`.
 - `skills/local` holds my changed copies of vendored skills; `skills/local/README.md` says what changed and why.
+- `rules/agent-kit.rules` is a Codex command rules file.
+  The installer copies it to `$CODEX_HOME/rules/agent-kit.rules`.
+  Codex then asks before git commands that commit, push, merge, rewrite, or discard work, and before any `glab` command, and never runs `gh`, whatever a skill or prompt says.
+  Rules match how a command starts, so `git -C <dir> commit` is not caught.
+  Codex only reads rules from `$CODEX_HOME/rules`, not from a project folder.
 - `skills.txt` lists the skills to install.
   The installer copies each listed skill to `~/.agents/skills/<name>`, taking `skills/local` first, then `skills/`, then `skills/vendor/mattpocock`.
   A `pstack-<name>` entry comes from `skills/vendor/pstack/<name>`, and the installed copy's `name:` line is changed to match.
