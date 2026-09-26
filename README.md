@@ -7,9 +7,11 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 - `AGENTS.md` holds my global agent instructions.
   The installer copies it to `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`).
 - `skills/html-artifact` is my own skill for building HTML pages, reports, and visual explainers.
-- `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository.
-- The installer copies every skill to `~/.agents/skills/<name>`.
-  It replaces only the skills it ships and leaves any other skills alone.
+- `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository, unchanged.
+- `skills/local` holds my changed copies of vendored skills; `skills/local/README.md` says what changed and why.
+- `skills.txt` lists the skills to install.
+  The installer copies each listed skill to `~/.agents/skills/<name>`, taking `skills/local` first, then `skills/`, then `skills/vendor/mattpocock`.
+  It removes a skill it installed earlier once that skill is taken off the list, and leaves every other skill alone.
 
 ## Install on Windows
 
@@ -54,4 +56,5 @@ Without it the skill still works, but it cannot see the pages it builds.
 
 Every skill under `skills/engineering/` and `skills/productivity/` in https://github.com/mattpocock/skills, pinned at commit `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`.
 They are MIT licensed and kept byte-identical to upstream.
+Only the ones named in `skills.txt` are installed.
 See `skills/vendor/mattpocock/SOURCE.md` and `skills/vendor/mattpocock/LICENSE`.

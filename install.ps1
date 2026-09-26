@@ -1,5 +1,6 @@
 # Install or update Timothy's Codex setup on Windows (Windows PowerShell 5.1+).
-# Safe to rerun: skills are replaced wholesale, AGENTS.md is backed up before it changes.
+# Safe to rerun: installs the skills listed in skills.txt, removes ones taken off the list,
+# and backs up AGENTS.md before it changes.
 $ErrorActionPreference = 'Stop'
 
 $repo = $PSScriptRoot
@@ -8,6 +9,26 @@ if ($env:CODEX_HOME) {
     $codexHome = $env:CODEX_HOME
 } else {
     $codexHome = Join-Path $HOME '.codex'
+}
+# Names of the skills this kit installed last time, so skills taken off the list get removed.
+$manifest = Join-Path $codexHome 'agent-kit-skills.txt'
+$vendorDir = Join-Path (Join-Path (Join-Path $repo 'skills') 'vendor') 'mattpocock'
+
+# A local change wins over the plain skill, which wins over the vendored original.
+function Resolve-Skill {
+    param([string]$Name)
+    $bases = @(
+        (Join-Path (Join-Path $repo 'skills') 'local'),
+        (Join-Path $repo 'skills'),
+        $vendorDir
+    )
+    foreach ($base in $bases) {
+        $candidate = Join-Path $base $Name
+        if (Test-Path -LiteralPath (Join-Path $candidate 'SKILL.md')) {
+            return $candidate
+        }
+    }
+    return $null
 }
 
 function Install-Skill {
@@ -30,23 +51,54 @@ function Install-Skill {
         Move-Item -LiteralPath (Join-Path $keep 'node_modules') -Destination (Join-Path $dest 'scripts')
         Remove-Item -LiteralPath $keep -Force
     }
-    Write-Host "  skill: $name -> $dest"
+    Write-Host "  skill: $name <- $($Source.Substring($repo.Length + 1))"
+}
+
+$wanted = @()
+foreach ($line in (Get-Content -LiteralPath (Join-Path $repo 'skills.txt'))) {
+    $name = ($line -replace '#.*$', '').Trim()
+    if ($name) {
+        $wanted += $name
+    }
+}
+
+# Check every name before touching anything.
+$sources = @()
+foreach ($name in $wanted) {
+    $src = Resolve-Skill -Name $name
+    if (-not $src) {
+        throw "skills.txt lists '$name', but no skill folder has that name."
+    }
+    $sources += $src
+}
+
+if (Test-Path -LiteralPath $manifest) {
+    $previous = @(Get-Content -LiteralPath $manifest)
+} else {
+    # Before the manifest existed, the installer copied every bundled skill.
+    $previous = @(Get-ChildItem -LiteralPath $vendorDir | Where-Object { $_.PSIsContainer } | ForEach-Object { $_.Name }) + 'html-artifact'
 }
 
 Write-Host "Installing skills into $skillsDest"
-if (-not (Test-Path -LiteralPath $skillsDest)) {
-    New-Item -ItemType Directory -Path $skillsDest -Force | Out-Null
+foreach ($dir in @($skillsDest, $codexHome)) {
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
 }
-Install-Skill -Source (Join-Path (Join-Path $repo 'skills') 'html-artifact')
-$vendorDir = Join-Path (Join-Path (Join-Path $repo 'skills') 'vendor') 'mattpocock'
-foreach ($dir in (Get-ChildItem -LiteralPath $vendorDir | Where-Object { $_.PSIsContainer })) {
-    Install-Skill -Source $dir.FullName
+foreach ($old in $previous) {
+    if (-not $old) { continue }
+    $oldPath = Join-Path $skillsDest $old
+    if (($wanted -notcontains $old) -and (Test-Path -LiteralPath (Join-Path $oldPath 'SKILL.md'))) {
+        Remove-Item -LiteralPath $oldPath -Recurse -Force
+        Write-Host "  removed: $old (not in skills.txt)"
+    }
 }
+foreach ($src in $sources) {
+    Install-Skill -Source $src
+}
+Set-Content -LiteralPath $manifest -Value $wanted -Encoding ASCII
 
 Write-Host "Installing AGENTS.md into $codexHome"
-if (-not (Test-Path -LiteralPath $codexHome)) {
-    New-Item -ItemType Directory -Path $codexHome -Force | Out-Null
-}
 $agentsSrc = Join-Path $repo 'AGENTS.md'
 $agentsDest = Join-Path $codexHome 'AGENTS.md'
 $identical = $false

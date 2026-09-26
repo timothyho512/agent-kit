@@ -1,0 +1,28 @@
+# Skills the installer copies into ~/.agents/skills, one per line.
+# Each name is looked up in skills/local/, then skills/, then skills/vendor/mattpocock/.
+# Removing a name here removes that skill on the next install.
+
+html-artifact
+
+# Thinking and planning
+grill-me
+grilling
+grill-with-docs
+domain-modeling
+codebase-design
+
+# Understanding code and topics
+teach
+research
+wait-what
+
+# Building and debugging
+diagnosing-bugs
+tdd
+
+# Sessions and agent docs
+handoff
+writing-for-agents
+
+# Not installed yet; each needs review and changes first:
+# implement, code-review, improve-codebase-architecture, prototype, resolving-merge-conflicts
