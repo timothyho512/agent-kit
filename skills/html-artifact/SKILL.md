@@ -10,6 +10,7 @@ The page must explain its subject better than prose in a terminal would, and it 
 
 Read `references/design.md` before writing any HTML.
 Read `references/diagrams.md` too if the page will contain any diagram, flow, architecture, or comparison figure.
+Read `references/explaining.md` before planning the page. It decides what the page covers and how every sentence is written.
 
 ## Process
 
