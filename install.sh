@@ -12,8 +12,18 @@ install_skill() {
   local name
   name="$(basename "$src")"
   local dest="$skills_dest/$name"
+  # Keep installed npm packages (the html-artifact checker) so updates don't force a reinstall.
+  local keep=""
+  if [ -d "$dest/scripts/node_modules" ]; then
+    keep="$(mktemp -d)"
+    mv "$dest/scripts/node_modules" "$keep/"
+  fi
   rm -rf "$dest"
   cp -R "$src" "$dest"
+  if [ -n "$keep" ]; then
+    mv "$keep/node_modules" "$dest/scripts/"
+    rmdir "$keep"
+  fi
   echo "  skill: $name -> $dest"
 }
 
@@ -43,7 +53,7 @@ fi
 html_scripts="$skills_dest/html-artifact/scripts"
 echo
 echo "Done."
-echo "Note: the html-artifact screenshot checker needs its dependency installed once (and again after each update):"
+echo "Note: the html-artifact screenshot checker needs its dependency installed once (kept across updates):"
 echo "  npm install --prefix \"$html_scripts\""
 echo "It uses the playwright-core npm package, which may need approval."
 echo "The skill works without it, but then it cannot see the pages it builds."

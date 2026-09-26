@@ -14,10 +14,22 @@ function Install-Skill {
     param([string]$Source)
     $name = Split-Path -Path $Source -Leaf
     $dest = Join-Path $skillsDest $name
+    # Keep installed npm packages (the html-artifact checker) so updates don't force a reinstall.
+    $modules = Join-Path (Join-Path $dest 'scripts') 'node_modules'
+    $keep = $null
+    if (Test-Path -LiteralPath $modules) {
+        $keep = Join-Path ([IO.Path]::GetTempPath()) ("agent-kit-" + [guid]::NewGuid())
+        New-Item -ItemType Directory -Path $keep | Out-Null
+        Move-Item -LiteralPath $modules -Destination $keep
+    }
     if (Test-Path -LiteralPath $dest) {
         Remove-Item -LiteralPath $dest -Recurse -Force
     }
     Copy-Item -LiteralPath $Source -Destination $dest -Recurse -Force
+    if ($keep) {
+        Move-Item -LiteralPath (Join-Path $keep 'node_modules') -Destination (Join-Path $dest 'scripts')
+        Remove-Item -LiteralPath $keep -Force
+    }
     Write-Host "  skill: $name -> $dest"
 }
 
@@ -61,7 +73,7 @@ if ($identical) {
 $htmlScripts = Join-Path (Join-Path $skillsDest 'html-artifact') 'scripts'
 Write-Host ""
 Write-Host "Done."
-Write-Host "Note: the html-artifact screenshot checker needs its dependency installed once (and again after each update):"
+Write-Host "Note: the html-artifact screenshot checker needs its dependency installed once (kept across updates):"
 Write-Host "  npm install --prefix `"$htmlScripts`""
 Write-Host "It uses the playwright-core npm package, which may need approval."
 Write-Host "The skill works without it, but then it cannot see the pages it builds."

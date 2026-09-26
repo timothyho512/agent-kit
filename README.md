@@ -14,7 +14,7 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 ## Install on Windows
 
 ```powershell
-git clone https://github.com/<github-user>/agent-kit.git $HOME\agent-kit
+git clone https://github.com/timothyho512/agent-kit.git $HOME\agent-kit
 powershell -ExecutionPolicy Bypass -File $HOME\agent-kit\install.ps1
 ```
 
@@ -36,7 +36,7 @@ Rerunning is safe.
 ## Optional: screenshot checker
 
 The html-artifact skill can screenshot its pages to check them, using the `playwright-core` npm package.
-Install it once, and again after each update because the installer replaces the skill folder:
+Install it once; the installer keeps it across updates:
 
 ```powershell
 npm install --prefix "$HOME\.agents\skills\html-artifact\scripts"
