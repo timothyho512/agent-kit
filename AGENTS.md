@@ -44,3 +44,42 @@ Create folders there as needed.
 The skills were written for Claude Code.
 When a skill says "call the Skill tool" for another skill, or names one as `/name`, read that skill's `SKILL.md` (in a sibling folder of the current skill) and follow it.
 When Timothy names a skill as `$name` and it is not in your skills list, it is a skill that only runs when asked: read `~/.agents/skills/<name>/SKILL.md` and follow it.
+
+## pstack
+
+pstack's skills are installed as `pstack-<name>` in `~/.agents/skills`, so `pstack:how`, `/pstack:how`, "the `how` skill", and a link such as `../how/SKILL.md` all mean `~/.agents/skills/pstack-how/`.
+Before following a pstack skill, read `~/.agents/skills/pstack-poteto-mode/references/codex-tools.md`: it maps the Claude tool and model names in pstack to Codex ones.
+
+Use `pstack-poteto-mode` and follow it when a task does any of these:
+
+- touches more than one file, or changes a signature other files call
+- involves a design or architecture choice
+- is a bug whose cause is not yet known, or a performance issue
+
+It routes to the right pstack skill from there.
+For smaller tasks (a contained change to one file with an obvious test, a question, or a one-line edit), work directly and verify on the real artifact.
+When the intent is already specific, go straight to `pstack-tdd`, `pstack-architect`, `pstack-how`, `pstack-why`, `pstack-arena`, or `pstack-interrogate`.
+The rules in this file win over pstack: when a pstack playbook says to commit, push, branch, or open a pull request, stop and ask Timothy instead.
+
+pstack model roles (these override each pstack skill's Models section).
+Only `gpt-5.6-sol` is known to be available, so panels vary reasoning effort instead of model; say in the verdict that model diversity was reduced.
+If another model such as `gpt-5.6-terra` or `gpt-5.6-luna` is listed by `codex debug models`, use it as a panel member instead.
+
+feature, refactoring: gpt-5.6-sol
+bug-fix: gpt-5.6-sol @high
+perf-issue: gpt-5.6-sol @high
+hillclimb: gpt-5.6-sol @high
+judgment and prose: gpt-5.6-sol
+strongest judgment: gpt-5.6-sol @high
+how explorer: gpt-5.6-sol
+how explainer: gpt-5.6-sol
+why investigators: gpt-5.6-sol
+why synthesizer: gpt-5.6-sol
+reflect tooling: gpt-5.6-sol
+reflect judgment, divergent, synthesizer: gpt-5.6-sol @high
+arena runners: gpt-5.6-sol @xhigh, gpt-5.6-sol @high, gpt-5.6-sol @medium
+arena cross-judge pool: gpt-5.6-sol @xhigh, gpt-5.6-sol @high, gpt-5.6-sol @medium
+swarm workers: gpt-5.6-sol
+architect runners: gpt-5.6-sol @xhigh, gpt-5.6-sol @high, gpt-5.6-sol @medium
+interrogate reviewers: gpt-5.6-sol @xhigh, gpt-5.6-sol @high, gpt-5.6-sol @medium
+default effort: session

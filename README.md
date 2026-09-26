@@ -9,9 +9,11 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 - `skills/html-artifact` is my own skill for building HTML pages, reports, and visual explainers.
 - `skills/bro` restates the last answer in plain words. It is copied from the `bro` skill in pstack (MIT, https://github.com/michael-denyer/pstack-claude, a port of Lauren Tan's pstack), and it only runs when invoked as `$bro`.
 - `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository, unchanged.
+- `skills/vendor/pstack` holds pstack's skills, vendored unchanged from the Claude Code and Codex port. They install as `pstack-<name>`.
 - `skills/local` holds my changed copies of vendored skills; `skills/local/README.md` says what changed and why.
 - `skills.txt` lists the skills to install.
   The installer copies each listed skill to `~/.agents/skills/<name>`, taking `skills/local` first, then `skills/`, then `skills/vendor/mattpocock`.
+  A `pstack-<name>` entry comes from `skills/vendor/pstack/<name>`, and the installed copy's `name:` line is changed to match.
   It removes a skill it installed earlier once that skill is taken off the list, and leaves every other skill alone.
 
 ## Install on Windows
@@ -59,10 +61,28 @@ Codex's sandbox only lets it write inside the current project, so allow the note
 writable_roots = ["C:\\Users\\<you>\\agent-notes"]
 ```
 
+## pstack
+
+pstack is a set of engineering workflows: go deep before writing code, write less of it, and verify it.
+`AGENTS.md` sends any task that touches more than one file, needs a design choice, or is a bug with an unknown cause through `$pstack-poteto-mode`, which picks the right pstack skill.
+You can also call one directly, for example `$pstack-how`, `$pstack-why`, `$pstack-architect`, or `$pstack-interrogate`.
+
+Skills such as `pstack-how`, `pstack-architect`, and `pstack-interrogate` run several subagents at once.
+If Codex says subagents are off, add this to `~\.codex\config.toml`:
+
+```toml
+[features]
+multi_agent = true
+```
+
+The model each pstack role uses is set at the end of `AGENTS.md`.
+To see which models your Codex account has, run `codex debug models`.
+
 ## Using it in Codex
 
 - Run `/skills` to list the installed skills.
 - Invoke a skill by name, for example `$html-artifact`, `$teach`, or `$grilling`.
+  `$teach` is Matt Pocock's; `$pstack-teach` is pstack's, which runs `pstack-how` and `pstack-why` together.
 
 ## Vendored skills
 
@@ -70,3 +90,7 @@ The skills I use from https://github.com/mattpocock/skills, pinned at commit `c5
 They are MIT licensed and kept byte-identical to upstream.
 The five I changed are also kept here unchanged, so `skills/local` can be diffed against them.
 See `skills/vendor/mattpocock/SOURCE.md` and `skills/vendor/mattpocock/LICENSE`.
+
+pstack's skills come from https://github.com/michael-denyer/pstack-claude, a port of Lauren Tan's pstack, pinned at the commit in `skills/vendor/pstack/SOURCE.md`.
+They are MIT licensed and kept byte-identical to upstream.
+The SOURCE file lists the few skills left out and why.

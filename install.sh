@@ -11,8 +11,18 @@ codex_home="${CODEX_HOME:-$HOME/.codex}"
 manifest="$codex_home/agent-kit-skills.txt"
 
 # A local change wins over the plain skill, which wins over the vendored original.
+# pstack skills are listed as pstack-<name> and come from skills/vendor/pstack/<name>.
 resolve_skill() {
   local base
+  case "$1" in
+    pstack-*)
+      if [ -f "$repo/skills/vendor/pstack/${1#pstack-}/SKILL.md" ]; then
+        echo "$repo/skills/vendor/pstack/${1#pstack-}"
+        return 0
+      fi
+      return 1
+      ;;
+  esac
   for base in "skills/local" "skills" "skills/vendor/mattpocock"; do
     if [ -f "$repo/$base/$1/SKILL.md" ]; then
       echo "$repo/$base/$1"
@@ -24,8 +34,7 @@ resolve_skill() {
 
 install_skill() {
   local src="$1"
-  local name
-  name="$(basename "$src")"
+  local name="$2"
   local dest="$skills_dest/$name"
   # Keep installed npm packages (the html-artifact checker) so updates don't force a reinstall.
   local keep=""
@@ -35,6 +44,13 @@ install_skill() {
   fi
   rm -rf "$dest"
   cp -R "$src" "$dest"
+  # A renamed skill (pstack-<name>) must also carry its new name, or Codex lists it under the old one.
+  if [ "$name" != "$(basename "$src")" ]; then
+    local tmp
+    tmp="$(mktemp)"
+    awk -v n="$name" '!done && /^name:/ { print "name: " n; done = 1; next } { print }' "$dest/SKILL.md" > "$tmp"
+    mv "$tmp" "$dest/SKILL.md"
+  fi
   if [ -n "$keep" ]; then
     mv "$keep/node_modules" "$dest/scripts/"
     rmdir "$keep"
@@ -74,8 +90,8 @@ while IFS= read -r old; do
     echo "  removed: $old (not in skills.txt)"
   fi
 done <<< "$previous"
-for src in "${sources[@]}"; do
-  install_skill "$src"
+for i in "${!wanted[@]}"; do
+  install_skill "${sources[$i]}" "${wanted[$i]}"
 done
 printf '%s\n' "${wanted[@]}" > "$manifest"
 

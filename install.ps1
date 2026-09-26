@@ -13,10 +13,19 @@ if ($env:CODEX_HOME) {
 # Names of the skills this kit installed last time, so skills taken off the list get removed.
 $manifest = Join-Path $codexHome 'agent-kit-skills.txt'
 $vendorDir = Join-Path (Join-Path (Join-Path $repo 'skills') 'vendor') 'mattpocock'
+$pstackDir = Join-Path (Join-Path (Join-Path $repo 'skills') 'vendor') 'pstack'
 
 # A local change wins over the plain skill, which wins over the vendored original.
+# pstack skills are listed as pstack-<name> and come from skills/vendor/pstack/<name>.
 function Resolve-Skill {
     param([string]$Name)
+    if ($Name.StartsWith('pstack-')) {
+        $candidate = Join-Path $pstackDir $Name.Substring('pstack-'.Length)
+        if (Test-Path -LiteralPath (Join-Path $candidate 'SKILL.md')) {
+            return $candidate
+        }
+        return $null
+    }
     $bases = @(
         (Join-Path (Join-Path $repo 'skills') 'local'),
         (Join-Path $repo 'skills'),
@@ -32,8 +41,8 @@ function Resolve-Skill {
 }
 
 function Install-Skill {
-    param([string]$Source)
-    $name = Split-Path -Path $Source -Leaf
+    param([string]$Source, [string]$Name)
+    $name = $Name
     $dest = Join-Path $skillsDest $name
     # Keep installed npm packages (the html-artifact checker) so updates don't force a reinstall.
     $modules = Join-Path (Join-Path $dest 'scripts') 'node_modules'
@@ -47,6 +56,19 @@ function Install-Skill {
         Remove-Item -LiteralPath $dest -Recurse -Force
     }
     Copy-Item -LiteralPath $Source -Destination $dest -Recurse -Force
+    # A renamed skill (pstack-<name>) must also carry its new name, or Codex lists it under the old one.
+    if ($name -ne (Split-Path -Path $Source -Leaf)) {
+        $skillFile = Join-Path $dest 'SKILL.md'
+        $lines = [IO.File]::ReadAllLines($skillFile)
+        for ($i = 0; $i -lt $lines.Length; $i++) {
+            if ($lines[$i] -match '^name:') {
+                $lines[$i] = "name: $name"
+                break
+            }
+        }
+        # Write UTF-8 without a byte order mark, like the original.
+        [IO.File]::WriteAllLines($skillFile, $lines, (New-Object Text.UTF8Encoding $false))
+    }
     if ($keep) {
         Move-Item -LiteralPath (Join-Path $keep 'node_modules') -Destination (Join-Path $dest 'scripts')
         Remove-Item -LiteralPath $keep -Force
@@ -91,8 +113,8 @@ foreach ($old in $previous) {
         Write-Host "  removed: $old (not in skills.txt)"
     }
 }
-foreach ($src in $sources) {
-    Install-Skill -Source $src
+for ($i = 0; $i -lt $wanted.Count; $i++) {
+    Install-Skill -Source $sources[$i] -Name $wanted[$i]
 }
 Set-Content -LiteralPath $manifest -Value $wanted -Encoding ASCII
 
