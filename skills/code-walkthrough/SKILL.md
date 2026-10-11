@@ -1,6 +1,6 @@
 ---
 name: code-walkthrough
-description: Walk the user line by line through code an agent generated, beside a map page showing how the pieces connect and which decisions were made. Use before opening a PR, or when the user says "walk me through" a diff, branch, or change, small or weeks long.
+description: Walk the user line by line through code, beside a map page showing how the pieces connect and which decisions were made. Use before opening a PR, when the user says "walk me through" a diff, branch, or change, small or weeks long, or when they ask to map or onboard onto a codebase or an area of one.
 ---
 
 # Code walkthrough
@@ -17,6 +17,13 @@ You never write HTML and never copy code into the spec.
 
 Below, `wt` means `node <this-skill-dir>/scripts/walkthrough.mjs`.
 Step (`S1`) and decision (`D1`) numbers are the shared vocabulary between the map on one monitor and the walk in the terminal.
+
+A spec has one of two kinds:
+
+- **change** (the default): code that differs from a base, every changed line in exactly one step.
+- **codebase**: an existing codebase or area of it, pinned at one commit, mapped for a newcomer.
+  Use it when the user asks to map, learn, or onboard onto code rather than review a change.
+  Read `references/codebase-map.md`; it replaces steps 1 and 2 below, and steps 3 to 6 apply as written.
 
 ## 1. Start or resume
 
@@ -100,6 +107,6 @@ At the end of a flow, offer the next flow.
 When every step is walked or skipped, run `wt status <spec>` and print:
 
 - Steps walked and skipped, per flow.
-- Every watch-out, as a list to fix before the PR (they are on the map too).
+- Every watch-out, as a list to fix before the PR (they are on the map too); for a codebase map, every gotcha.
 - Every note, as a crib sheet for questions a reviewer may ask.
 - The decisions with an unknown why, so the user can settle them before a reviewer asks.

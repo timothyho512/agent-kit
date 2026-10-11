@@ -58,6 +58,16 @@ Backticks become inline code on the map.
 }
 ```
 
+A codebase map (`"kind": "codebase"`, made by `init --map`) uses the same fields, minus `ignore`, plus `areas`:
+
+```json
+"areas": [
+  { "path": "src/main/java/com/acme/billing/", "role": "Billing REST controllers and services" }
+]
+```
+
+`kind`, `head` (the pinned commit), and `scope` belong to the script.
+
 ## Fields
 
 - **ignore**: glob patterns (`*`, `**`) for changed files nobody needs to read: lock files, generated clients, snapshots, binaries.

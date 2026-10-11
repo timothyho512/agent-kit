@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Builds and checks a code walkthrough from a JSON spec. The agent writes the spec;
 // this script owns the diff, coverage, code display, progress, and the map page.
+// A spec walks either a change (kind "change": every changed line in one step) or a
+// codebase pinned at one commit (kind "codebase": steps are the places worth reading).
 // Commands: init, check, render, show, mark, watch, note, status. No dependencies beyond Node 18 and git.
 
 import { execFileSync } from "node:child_process";
@@ -11,6 +13,7 @@ import path from "node:path";
 
 const USAGE = `Usage:
   walkthrough.mjs init --base <ref> [--head <ref>] [--title <text>]   (run inside the repo)
+  walkthrough.mjs init --map [--scope <path>[,<path>...]] [--title <text>]
   walkthrough.mjs check  <spec.json>
   walkthrough.mjs render <spec.json>
   walkthrough.mjs show   <spec.json> <step>
@@ -96,6 +99,22 @@ function loadDiff(spec) {
   return { mergeBase, headSha, files };
 }
 
+const isMap = (spec) => spec.kind === "codebase";
+
+// A codebase map has no diff: its source is the pinned commit, with no changed lines.
+function loadSource(spec) {
+  return isMap(spec) ? { mergeBase: null, headSha: spec.head, files: new Map() } : loadDiff(spec);
+}
+
+function existsAt(spec, sha, p) {
+  try {
+    git(spec.repo, ["cat-file", "-e", `${sha}:${p.replace(/\/+$/, "")}`], { quiet: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function splitLines(text) {
   const lines = text.split(/\r?\n/);
   if (lines.length && lines[lines.length - 1] === "") lines.pop();
@@ -121,7 +140,9 @@ function fileLines(spec, headSha, p) {
 
 function readSpec(specPath) {
   const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
+  spec.kind ??= "change";
   for (const k of ["flows", "steps", "decisions", "watchouts", "notes", "ignore"]) spec[k] ??= [];
+  if (isMap(spec)) for (const k of ["areas", "scope"]) spec[k] ??= [];
   spec.progress ??= {};
   return spec;
 }
@@ -198,7 +219,7 @@ function hashStep(spec, headSha, step, ranges) {
 
 // Returns { problems, stale, diff }. Records a fingerprint per step so later runs can spot code that changed under a walked step.
 function analyse(spec) {
-  const diff = loadDiff(spec);
+  const diff = loadSource(spec);
   const problems = [];
   const stale = [];
   const stepIds = new Set();
@@ -227,6 +248,10 @@ function analyse(spec) {
       const size = ranges.reduce((n, [a, b]) => n + b - a + 1, 0);
       if (size > 40) problems.push(`${step.id}: a read step spans ${size} lines; split it into steps of 25 lines or fewer, or mark it skim.`);
     }
+    const fp = hashStep(spec, diff.headSha, step, ranges);
+    if (step.seen && step.seen.lines === step.lines && fp && step.seen.hash !== fp) stale.push(step.id);
+    else if (fp) step.seen = { lines: step.lines, hash: fp };
+    if (isMap(spec)) continue;
     const map = coverage.get(step.file) ?? new Map();
     coverage.set(step.file, map);
     const f = diff.files.get(step.file);
@@ -240,9 +265,6 @@ function analyse(spec) {
       }
     }
     for (const [other, ns] of clashes) problems.push(`${step.id}: ${step.file} lines ${compact(ns)} are already in ${other}; each changed line belongs to one step.`);
-    const fp = hashStep(spec, diff.headSha, step, ranges);
-    if (step.seen && step.seen.lines === step.lines && fp && step.seen.hash !== fp) stale.push(step.id);
-    else if (fp) step.seen = { lines: step.lines, hash: fp };
   }
 
   for (const d of spec.decisions) for (const s of d.steps ?? []) if (!stepIds.has(s)) problems.push(`${d.id}: step ${s} does not exist.`);
@@ -273,7 +295,8 @@ function analyse(spec) {
       if (!ranges.some(([x, y]) => a >= x - 1 && a <= y + 1)) uncovered.push(`${p}: lines removed after line ${a} are in no step; widen the nearest step to include line ${a}.`);
     }
   }
-  for (const s of spec.steps) {
+  for (const a of spec.areas ?? []) if (isMap(spec) && !existsAt(spec, diff.headSha, a.path)) problems.push(`Area ${a.path} does not exist at ${diff.headSha.slice(0, 7)}.`);
+  for (const s of isMap(spec) ? [] : spec.steps) {
     if (s.file && !diff.files.has(s.file) && !String(s.lines).includes("deleted")) problems.push(`${s.id}: ${s.file} has no changes in this diff; context code belongs in the walk, not in a step.`);
   }
   for (const id of Object.keys(spec.progress)) if (!stepIds.has(id)) delete spec.progress[id];
@@ -287,7 +310,7 @@ function cmdCheck(specPath) {
   writeSpec(specPath, spec);
   for (const id of stale) problems.push(`${id}: its code changed since it was planned; re-plan it, then clear its "seen" field.`);
   if (!problems.length) {
-    console.log(`OK: every changed line belongs to exactly one step (${spec.steps.length} steps).`);
+    console.log(isMap(spec) ? `OK: every step, flow, and area resolves (${spec.steps.length} steps).` : `OK: every changed line belongs to exactly one step (${spec.steps.length} steps).`);
     return;
   }
   console.log(`${problems.length} problem(s):`);
@@ -303,9 +326,14 @@ function slug(s) {
 
 function cmdInit(args) {
   const opts = {};
-  for (let i = 0; i < args.length; i += 2) opts[args[i].replace(/^--/, "")] = args[i + 1];
-  if (!opts.base) throw new Error("init needs --base <ref>.");
+  for (let i = 0; i < args.length; i++) {
+    const key = args[i].replace(/^--/, "");
+    if (key === "map") opts.map = true;
+    else opts[key] = args[++i];
+  }
   const repo = git(process.cwd(), ["rev-parse", "--show-toplevel"]).trim();
+  if (opts.map) return initMap(repo, opts);
+  if (!opts.base) throw new Error("init needs --base <ref>, or --map.");
   const branch = opts.head ?? (git(repo, ["branch", "--show-current"]).trim() || "detached");
   const dir = path.join(os.homedir(), "agent-notes", path.basename(repo), "walkthrough", slug(branch));
   const specPath = path.join(dir, "spec.json");
@@ -345,6 +373,52 @@ function cmdInit(args) {
   if (added > 600 || diff.files.size > 20) console.log("Size: large. Plan every flow in the spec, then walk one flow at a time.");
 }
 
+// The map is pinned to the current commit, so line numbers stay true while the user keeps working.
+function initMap(repo, opts) {
+  const scope = (opts.scope ?? "").split(",").map((p) => p.trim().replace(/\/+$/, "")).filter(Boolean);
+  const head = git(repo, ["rev-parse", "HEAD"]).trim();
+  const dir = path.join(os.homedir(), "agent-notes", path.basename(repo), "map", slug(scope.join("+") || "repo"));
+  const specPath = path.join(dir, "spec.json");
+  if (fs.existsSync(specPath)) {
+    console.log(`A spec already exists: ${specPath}`);
+    console.log("Resume it: run status, then check.");
+    return;
+  }
+  const spec = {
+    kind: "codebase",
+    title: opts.title ?? (scope.join(", ") || path.basename(repo)),
+    repo,
+    head,
+    scope,
+    summary: "",
+    areas: [],
+    flows: [],
+    steps: [],
+    decisions: [],
+    watchouts: [],
+    notes: [],
+    progress: {},
+  };
+  for (const p of scope) if (!existsAt(spec, head, p)) throw new Error(`${p} does not exist at ${head.slice(0, 7)}.`);
+  const files = git(repo, ["ls-tree", "-r", "--name-only", "-z", head, "--", ...scope]).split("\0").filter(Boolean);
+  const byDir = new Map();
+  let total = 0;
+  for (const f of files) {
+    const n = fileLines(spec, head, f)?.length ?? 0;
+    total += n;
+    const d = path.posix.dirname(f);
+    const e = byDir.get(d) ?? { files: 0, lines: 0 };
+    byDir.set(d, { files: e.files + 1, lines: e.lines + n });
+  }
+  fs.mkdirSync(dir, { recursive: true });
+  writeSpec(specPath, spec);
+  console.log(`Spec: ${specPath}`);
+  console.log(`Commit: ${head.slice(0, 7)}${scope.length ? `, scope ${scope.join(", ")}` : ", whole repo"}`);
+  console.log("Folders (files, lines):");
+  for (const [d, e] of [...byDir].sort(([a], [b]) => a.localeCompare(b))) console.log(`  ${d}/  ${e.files} files, ${e.lines} lines`);
+  console.log(`Total: ${files.length} files, ${total} lines`);
+}
+
 // ---------- show / mark / watch / note / status ----------
 
 function findStep(spec, id) {
@@ -356,8 +430,8 @@ function findStep(spec, id) {
 function cmdShow(specPath, id) {
   const spec = readSpec(specPath);
   const step = findStep(spec, id);
-  const head = spec.head ? git(spec.repo, ["rev-parse", spec.head]).trim() : null;
-  const diff = loadDiff(spec);
+  const diff = loadSource(spec);
+  const head = diff.headSha;
   const changed = diff.files.get(step.file)?.added ?? new Set();
   const flow = spec.flows.find((f) => f.id === step.flow);
   const bits = [step.id, `${step.file}:${step.lines}`, step.depth, flow ? `flow ${flow.id}` : null, (step.decisions ?? []).join(" ") || null];
@@ -392,7 +466,7 @@ function cmdRecord(specPath, list, id, text) {
   spec[list].push({ step: id, text });
   writeSpec(specPath, spec);
   renderTo(specPath, spec);
-  console.log(`Recorded a ${list === "notes" ? "note" : "watch-out"} on ${id}.`);
+  console.log(`Recorded a ${list === "notes" ? "note" : LABELS[spec.kind].watch.toLowerCase().replace(/s$/, "")} on ${id}.`);
 }
 
 // Prefers the next open step in the same flow as `after`, so a walk finishes one flow before moving on.
@@ -427,8 +501,12 @@ function cmdStatus(specPath) {
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 // Inline `code` spans in spec prose.
+// Paths break after a slash rather than mid-name.
+const pathHtml = (p) => esc(p).replace(/\//g, "/<wbr>");
 const prose = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
 
+// A wide diagram shrinks to fit only this far, then the figure scrolls, so labels stay readable.
+const MIN_DIAGRAM_SCALE = 0.75;
 const MONO_CHAR = 7.3;
 const LABEL_CHAR = 7.9;
 const SUB_CHAR = 6.9;
@@ -492,7 +570,7 @@ function sequenceSvg(flow, idx) {
     }
   });
   const aria = `Sequence of calls in flow ${flow.id}: ${messages.map((m) => `${m.from} to ${m.to}, ${m.label}`).join("; ")}`;
-  return `<svg class="seq" role="img" aria-label="${esc(aria)}" viewBox="0 0 ${width} ${height}" style="color: var(--text); width: 100%; max-width: ${width}px; height: auto;">${parts.join("")}</svg>`;
+  return `<svg class="seq" role="img" aria-label="${esc(aria)}" viewBox="0 0 ${width} ${height}" style="color: var(--text); width: 100%; max-width: ${width}px; min-width: ${Math.round(width * MIN_DIAGRAM_SCALE)}px; height: auto;">${parts.join("")}</svg>`;
 }
 
 function flowList(flow) {
@@ -502,8 +580,14 @@ function flowList(flow) {
     .join("")}</ol>`;
 }
 
+const LABELS = {
+  change: { page: "Walkthrough", decisions: "Decisions", chosen: "Chosen", alternative: "Alternative", unknown: "Unknown: decide whether you agree.", watch: "Watch-outs" },
+  codebase: { page: "Map", decisions: "Conventions", chosen: "Here", alternative: "Instead of", unknown: "Unknown: the code and docs do not say.", watch: "Gotchas" },
+};
+
 function renderHtml(spec, analysis) {
   const { diff, problems, stale } = analysis;
+  const L = LABELS[spec.kind];
   const staleSet = new Set(stale);
   let added = 0;
   let removed = 0;
@@ -526,7 +610,7 @@ function renderHtml(spec, analysis) {
     const steps = spec.steps.filter((s) => s.flow === flow.id);
     const rows = steps.map((s) => `<tr id="${esc(s.id)}" class="${s.depth}">
       <td class="sid">${esc(s.id)}</td>
-      <td><div class="title">${prose(s.title)}</div><div class="loc">${esc(s.file)}:${esc(s.lines)}</div></td>
+      <td><div class="title">${prose(s.title)}</div><div class="loc">${pathHtml(s.file)}:${esc(s.lines)}</div></td>
       <td>${prose(s.what)}${spec.notes.filter((n) => n.step === s.id).map((n) => `<div class="rownote"><b>Note</b> ${prose(n.text)}</div>`).join("")}</td>
       <td><span class="depth depth-${esc(s.depth)}">${esc(s.depth)}</span><div class="n">${stepCount(s)} lines</div></td>
       <td>${decisionLinks(s.decisions) || ""}</td>
@@ -538,38 +622,53 @@ function renderHtml(spec, analysis) {
       <p class="meta">${steps.length} steps, ${doneHere} done</p>
       ${(flow.messages ?? []).length ? `<figure><div class="fig-wide">${sequenceSvg(flow, i)}</div><div class="fig-narrow">${flowList(flow)}</div>
       <figcaption>Calls run top to bottom. Solid arrows are calls, dashed arrows are returns. Click a step number to jump to its row.</figcaption></figure>` : ""}
-      <div class="table-wrap"><table class="steps"><thead><tr><th>Step</th><th>Code</th><th>What it does</th><th>Depth</th><th>Decisions</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="table-wrap"><table class="steps"><thead><tr><th>Step</th><th>Code</th><th>What it does</th><th>Depth</th><th>${L.decisions}</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
     </section>`;
   }).join("");
 
   const decisionsHtml = spec.decisions.map((d) => `<li id="${esc(d.id)}"><h3><span class="did">${esc(d.id)}</span>${prose(d.title)}</h3><dl>
-      <dt>Chosen</dt><dd>${prose(d.chosen)}</dd>
-      <dt>Alternative</dt><dd>${prose(d.alternative)}</dd>
-      <dt>Why</dt><dd>${d.why ? prose(d.why) : `<b class="unknown">Unknown: decide whether you agree.</b>`}</dd>
+      <dt>${L.chosen}</dt><dd>${prose(d.chosen)}</dd>
+      <dt>${L.alternative}</dt><dd>${prose(d.alternative)}</dd>
+      <dt>Why</dt><dd>${d.why ? prose(d.why) : `<b class="unknown">${L.unknown}</b>`}</dd>
       <dt>Steps</dt><dd>${stepLinks(d.steps)}</dd></dl></li>`).join("");
 
   const recordList = (sectionId, heading, items) => items.length
     ? `<section id="${sectionId}"><h2>${heading}</h2><ul class="watch">${items.map((w) => `<li><a href="#${esc(w.step)}">${esc(w.step)}</a> ${prose(w.text)}</li>`).join("")}</ul></section>`
     : "";
-  const watchHtml = recordList("watch", "Watch-outs", spec.watchouts);
+  const watchHtml = recordList("watch", L.watch, spec.watchouts);
   // Notes follow walk order, so the list reads like the walk did.
   const order = new Map(spec.steps.map((s, i) => [s.id, i]));
   const notesHtml = recordList("notes", "Notes", spec.notes.map((n, i) => ({ ...n, i })).sort((a, b) => (order.get(a.step) ?? 0) - (order.get(b.step) ?? 0) || a.i - b.i));
 
-  const fileRows = [...diff.files].sort(([a], [b]) => a.localeCompare(b)).map(([p, f]) => {
+  const areaRows = (spec.areas ?? []).map((a) => {
+    const prefix = a.path.replace(/\/+$/, "");
+    const steps = spec.steps.filter((s) => s.file === prefix || s.file.startsWith(prefix + "/")).map((s) => s.id);
+    return `<tr><td class="loc">${pathHtml(a.path)}</td><td>${prose(a.role)}</td><td>${stepLinks(steps)}</td></tr>`;
+  }).join("");
+  const filesHtml = isMap(spec)
+    ? `<section id="files"><h2>Where things live</h2><div class="table-wrap"><table><thead><tr><th>Path</th><th>What it holds</th><th>Steps</th></tr></thead><tbody>${areaRows}</tbody></table></div></section>`
+    : `<section id="files"><h2>Changed files</h2><div class="table-wrap"><table><thead><tr><th>File</th><th>Added</th><th>Removed</th><th>Steps</th></tr></thead><tbody>${fileRows()}</tbody></table></div></section>`;
+
+  function fileRows() { return [...diff.files].sort(([a], [b]) => a.localeCompare(b)).map(([p, f]) => {
     const reason = ignoredReason(spec, p);
     const steps = spec.steps.filter((s) => s.file === p).map((s) => s.id);
-    return `<tr><td class="loc">${esc(p)}${f.deleted ? " (deleted)" : ""}</td><td class="num">+${f.added.size}</td><td class="num">-${f.removed}</td><td>${reason ? `<span class="muted">Not walked: ${prose(reason)}</span>` : stepLinks(steps)}</td></tr>`;
-  }).join("");
+    return `<tr><td class="loc">${pathHtml(p)}${f.deleted ? " (deleted)" : ""}</td><td class="num">+${f.added.size}</td><td class="num">-${f.removed}</td><td>${reason ? `<span class="muted">Not walked: ${prose(reason)}</span>` : stepLinks(steps)}</td></tr>`;
+  }).join(""); }
 
   const problemsHtml = problems.length || stale.length
     ? `<div class="problems" role="alert"><b>The plan does not match the code yet.</b><ul>${[...problems, ...stale.map((s) => `${s}: code changed since it was planned.`)].map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>`
     : "";
 
-  const range = `${diff.mergeBase.slice(0, 7)} to ${diff.headSha ? diff.headSha.slice(0, 7) : "working tree"}`;
+  const range = isMap(spec)
+    ? `Commit ${diff.headSha.slice(0, 7)}${spec.scope.length ? `, scope ${spec.scope.join(", ")}` : ", whole repo"}.`
+    : `Range ${diff.mergeBase.slice(0, 7)} to ${diff.headSha ? diff.headSha.slice(0, 7) : "working tree"}.`;
+  const sizeFacts = isMap(spec)
+    ? `<li><b>${spec.areas.length}</b> area${spec.areas.length === 1 ? "" : "s"}</li>`
+    : `<li><b>${diff.files.size}</b> files</li>
+    <li><b>+${added}</b> / <b>-${removed}</b> lines</li>`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(spec.title)} Walkthrough</title>
+<title>${esc(spec.title)} ${L.page}</title>
 <style>
 :root {
   color-scheme: light;
@@ -661,23 +760,22 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 <header>
   <h1>${esc(spec.title)}</h1>
   ${spec.summary ? `<p>${prose(spec.summary)}</p>` : ""}
-  <p class="meta">Range ${esc(range)}. The terminal walk uses the same step (S) and decision (D) numbers as this page. Refresh after each step to see progress.</p>
+  <p class="meta">${esc(range)} The terminal walk uses the same step (S) and decision (D) numbers as this page. Refresh after each step to see progress.</p>
   <ul class="facts">
-    <li><b>${diff.files.size}</b> files</li>
-    <li><b>+${added}</b> / <b>-${removed}</b> lines</li>
+    ${sizeFacts}
     <li><b>${spec.flows.length}</b> flow${spec.flows.length === 1 ? "" : "s"}</li>
     <li><b>${spec.steps.length}</b> steps (${readSteps.length} read, ${spec.steps.length - readSteps.length} skim)</li>
-    <li><b>${spec.decisions.length}</b> decision${spec.decisions.length === 1 ? "" : "s"}</li>
+    <li><b>${spec.decisions.length}</b> ${L.decisions.toLowerCase().replace(/s$/, "")}${spec.decisions.length === 1 ? "" : "s"}</li>
     <li><b>${done}</b> of ${spec.steps.length} done</li>
   </ul>
 </header>
 ${problemsHtml}
-<nav class="flows" aria-label="Flows">${spec.flows.map((f) => `<a href="#flow-${esc(f.id)}">Flow ${esc(f.id)}: ${esc(f.title)}</a>`).join("")}<a href="#decisions">Decisions</a>${spec.watchouts.length ? `<a href="#watch">Watch-outs</a>` : ""}${spec.notes.length ? `<a href="#notes">Notes</a>` : ""}<a href="#files">Files</a></nav>
+<nav class="flows" aria-label="Flows">${spec.flows.map((f) => `<a href="#flow-${esc(f.id)}">Flow ${esc(f.id)}: ${esc(f.title)}</a>`).join("")}<a href="#decisions">${L.decisions}</a>${spec.watchouts.length ? `<a href="#watch">${L.watch}</a>` : ""}${spec.notes.length ? `<a href="#notes">Notes</a>` : ""}<a href="#files">${isMap(spec) ? "Where things live" : "Files"}</a></nav>
 ${flowsHtml}
-<section id="decisions"><h2>Decisions</h2><ul class="decisions">${decisionsHtml}</ul></section>
+<section id="decisions"><h2>${L.decisions}</h2><ul class="decisions">${decisionsHtml}</ul></section>
 ${watchHtml}
 ${notesHtml}
-<section id="files"><h2>Changed files</h2><div class="table-wrap"><table><thead><tr><th>File</th><th>Added</th><th>Removed</th><th>Steps</th></tr></thead><tbody>${fileRows}</tbody></table></div></section>
+${filesHtml}
 </main></body></html>
 `;
 }
