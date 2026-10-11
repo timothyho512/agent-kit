@@ -7,6 +7,9 @@ My personal setup for the Codex CLI: global instructions plus the skills I use.
 - `AGENTS.md` holds my global agent instructions.
   The installer copies it to `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`).
 - `skills/html-artifact` is my own skill for building HTML pages, reports, and visual explainers.
+- `skills/code-walkthrough` is my own skill for reading agent-written code before a PR, from a small diff to weeks of commits.
+  The agent writes a JSON plan; `scripts/walkthrough.mjs` checks that every changed line is covered, renders the map page, and tracks progress, so a walk can stop and resume.
+  Then the agent walks through each step in the terminal: it points out the key lines and decisions, and explains any line the user asks about.
 - `skills/vendor/mattpocock` holds skills vendored from Matt Pocock's repository, unchanged.
 - `skills/vendor/pstack` holds pstack's skills, vendored unchanged from the Claude Code and Codex port. They install as `pstack-<name>`.
 - `skills/local` holds my changed copies of vendored skills; `skills/local/README.md` says what changed and why.

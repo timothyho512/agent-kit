@@ -1,0 +1,3 @@
+interface:
+  display_name: "Code walkthrough"
+  short_description: "Walk me line by line through a diff, with a map page"

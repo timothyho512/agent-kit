@@ -12,6 +12,7 @@ domain-modeling
 codebase-design
 
 # Understanding code and topics
+code-walkthrough
 teach
 research
 wait-what
